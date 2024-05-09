@@ -1,0 +1,7 @@
+# windows style it is /datasets
+datasets/
+__pycache__/
+.vscode/
+Output/
+models/
+images/
