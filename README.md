@@ -1,7 +1,3 @@
-Here's a README file that provides an overview of your exercise repository:
-
----
-
 # Deep Learning Exercises - Summer Semester 2024
 
 **Owner:** Qiancheng Hu
@@ -78,6 +74,3 @@ Complete and submit at least 8 out of the 9 required exercises to qualify for th
 - [Piazza Forum](https://piazza.com/mytum.de/winter2024/in2346)
 - [Python Programming Guide](http://nbviewer.jupyter.org/github/jrjohansson/scientific-python-lectures/blob/master/Lecture-1-Introduction-to-Python-Programming.ipynb)
 
----
-
-Let me know if you'd like any modifications!
