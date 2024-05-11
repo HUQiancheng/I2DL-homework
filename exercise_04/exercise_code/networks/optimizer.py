@@ -24,7 +24,16 @@ class Optimizer(object):
         # Implement the gradient descent step over the weight, using the       #
         # learning rate.                                                       #
         ########################################################################
+        # Retrieve the current weight matrix from the model
+        weight = self.model.W
 
+        # Perform the weight update using the gradient descent formula
+        # w_{(n+1)} = w_{(n)} - learning_rate * gradient
+        # Here, dw represents the gradient, and self.lr is the learning rate
+        weight = weight - self.lr * dw
+
+        # Update the weight matrix of the model with the new values
+        self.model.W = weight
 
         pass
 

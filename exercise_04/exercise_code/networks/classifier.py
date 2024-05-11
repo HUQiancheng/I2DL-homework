@@ -69,8 +69,15 @@ class Classifier(Network):
         #       The function is made up of TWO functions: Affine and sigmoid.  #
         #       The sigmoid is applied to the result of the affine step.       #
         ########################################################################
+        
+        # Linear affine transformation
+        s = np.dot(X, self.W)
+        
+        # Apply sigmoid activation function
+        z = self.sigmoid(s)
 
-
+        # Cache relevant variables for backward pass
+        self.cache = (X, s, z)
         pass
 
         ########################################################################
@@ -108,8 +115,22 @@ class Classifier(Network):
         # Hint 3: The argument "dout" stands for the upstream gradeint to this #
         # layer.                                                               #
         ########################################################################
+        
+        # Retrieve variables stored in cache during the forward pass
+        # The variables are unpacked in the exact order they were packed in the cache
+        X_with_bias, s, z = self.cache
 
+        # Calculate the gradient of the sigmoid output w.r.t. the linear layer output 's'
+        # The derivative of the sigmoid function sigma(s) w.r.t 's' is sigma(s) * (1 - sigma(s))
+        # This calculation uses element-wise multiplication with the upstream gradient 'dout'
+        ds = z * (1 - z) * dout  # Element-wise multiplication
 
+        # Calculate the gradient of the weights 'W'
+        # This is computed by the dot product of the transposed input (including bias) and the gradient from the sigmoid derivative
+        # np.dot(X_with_bias.T, ds) performs a matrix multiplication between the transpose of X_with_bias and ds
+        # X_with_bias.T changes the shape from (N, D+1) to (D+1, N), and ds is (N, 1), resulting in a (D+1, 1) matrix which matches the shape of W
+        dW = np.dot(X_with_bias.T, ds)
+        
         pass
 
         ########################################################################
@@ -129,7 +150,7 @@ class Classifier(Network):
         ########################################################################
         # TODO:                                                                #
         # Implement the sigmoid function over the input x. Return "out".       #
-        return 1 / (1 + np.exp(-x))
+        out = 1 / (1 + np.exp(-x))
         # Note: The sigmoid() function operates element-wise.                  #
         ########################################################################
 

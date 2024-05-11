@@ -103,7 +103,19 @@ class Solver(object):
         #   backward.                                                          #
         ########################################################################
 
+        # Step 1: Perform the forward pass through the model to get predictions
+         # Perform a forward pass to get the predictions
+        predictions = model.forward(X_train)
 
+        # Compute the loss and the gradient of the loss w.r.t. outputs
+        loss = loss_func.forward(predictions, y_train)
+        dloss = loss_func.backward(predictions, y_train)
+
+        # Backpropagate the gradient through the model
+        grads = model.backward(dloss)
+
+        # Use the optimizer to update the model parameters based on the gradients
+        opt.step(grads)
         pass
 
         ########################################################################
