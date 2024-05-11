@@ -115,6 +115,29 @@ class BCE(Loss):
         # TODO:                                                                #
         # Implement the forward pass and return the output of the BCE loss     #
         # for each imstance in the batch.                                      #
+        
+        # This is a way similar to the override in C++                             
+        # it is called the inheritance and polymorphism in OOP
+        
+        # # Slow implementation
+        # N = np.size(y_out)
+        # if N != np.size(y_truth):
+        #     raise ValueError("The size of the predicted values and the ground truth values should be the same")
+        # else:
+        #     for i in range(N):
+        #         result += -y_truth[i] * np.log(y_out[i]) - (1 - y_truth[i]) * np.log(1 - y_out[i])
+        # result = result / N
+        
+        # Fast implementation
+        # Ensure y_out and y_truth have the same size
+        if y_out.shape != y_truth.shape:
+            raise ValueError("The shape of predicted values and ground truth values must match.")
+        
+        # Compute BCE using vectorized operations
+        result = -y_truth * np.log(y_out) - (1 - y_truth) * np.log(1 - y_out)
+        # Explanation:
+        # 1 - y_out is a vector
+        # np.log() return element-wise log of the input
         #                                                                      #
         ########################################################################
 
@@ -147,6 +170,20 @@ class BCE(Loss):
         # Implement the backward pass. Return the gradient w.r.t to the input  #
         # to the loss function, y_out.                                         #
         #                                                                      #
+        
+        # fast implementation
+        # Ensure y_out and y_truth have the same size
+        if y_out.shape != y_truth.shape:
+            raise ValueError("The shape of predicted values and ground truth values must match.")
+
+        # Compute gradient using vectorized operations and divide by N to average over the batch
+        N = y_out.shape[0]
+        gradient = -(y_truth / y_out - (1 - y_truth) / (1 - y_out)) / N
+        # Explanation:
+        # In NumPy, division is element-wise. This means y_truth / y_out returns an array where each element is 
+        # the division of the corresponding elements in y_truth and y_out.
+        # last semester i lost 10 marks for not knowing it returns directly the array
+        
         # Hint:                                                                #
         #   Don't forget to divide by N, which is the number of samples in     #
         #   the batch. It is crucial for the magnitude of the gradient.        #

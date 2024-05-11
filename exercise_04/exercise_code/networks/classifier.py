@@ -59,6 +59,12 @@ class Classifier(Network):
         # Also, save in self.cache an array of all the relevant variables that #
         # you will need to use in the backward() function. E.g.: (X, ...)      #
         #                                                                      #
+        
+        # Explanation on the code below:       
+        # batch_size, _ = X.shape
+        # X = np.concatenate((X, np.ones((batch_size, 1))), axis=1)
+        # np.concatenate has its first argument as a tuple of arrays to concatenate
+        
         # Hint:                                                                #
         #       The function is made up of TWO functions: Affine and sigmoid.  #
         #       The sigmoid is applied to the result of the affine step.       #
@@ -123,6 +129,7 @@ class Classifier(Network):
         ########################################################################
         # TODO:                                                                #
         # Implement the sigmoid function over the input x. Return "out".       #
+        return 1 / (1 + np.exp(-x))
         # Note: The sigmoid() function operates element-wise.                  #
         ########################################################################
 
