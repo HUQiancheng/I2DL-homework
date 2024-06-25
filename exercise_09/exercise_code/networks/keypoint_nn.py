@@ -32,9 +32,30 @@ class KeypointModel(nn.Module):
         # You're going probably try different architecutres, and that will     #
         # allow you to be quick and flexible.                                  #
         ########################################################################
+        # Define all the layers of your CNN
+        self.conv1 = nn.Conv2d(1, hparams['conv1_filters'], kernel_size=hparams['conv1_kernel'], stride=1, padding=0)
+        self.conv2 = nn.Conv2d(hparams['conv1_filters'], hparams['conv2_filters'], kernel_size=hparams['conv2_kernel'], stride=1, padding=0)
+        self.conv3 = nn.Conv2d(hparams['conv2_filters'], hparams['conv3_filters'], kernel_size=hparams['conv3_kernel'], stride=1, padding=0)
+        self.conv4 = nn.Conv2d(hparams['conv3_filters'], hparams['conv4_filters'], kernel_size=hparams['conv4_kernel'], stride=1, padding=0)
         
-
-        pass
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        
+        self.drop1 = nn.Dropout(p=hparams['dropout1_rate'])
+        self.drop2 = nn.Dropout(p=hparams['dropout2_rate'])
+        self.drop3 = nn.Dropout(p=hparams['dropout3_rate'])
+        self.drop4 = nn.Dropout(p=hparams['dropout4_rate'])
+        
+        # Adjusting the input size for fully connected layers based on the reduced filters
+        self.fc1 = nn.Linear(hparams['conv4_filters']*5*5, hparams['fc1_units'])
+        self.fc2 = nn.Linear(hparams['fc1_units'], hparams['fc2_units'])
+        self.fc3 = nn.Linear(hparams['fc2_units'], 30)
+        
+        if hparams['activation_function'] == 'ELU':
+            self.activation = nn.ELU()
+        elif hparams['activation_function'] == 'ReLU':
+            self.activation = nn.ReLU()
+        elif hparams['activation_function'] == 'LeakyReLU':
+            self.activation = nn.LeakyReLU()
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -51,9 +72,30 @@ class KeypointModel(nn.Module):
         # corresponding predicted keypoints.                                   #
         # NOTE: what is the required output size?                              #
         ########################################################################
-
-
-        pass
+        x = self.activation(self.conv1(x))
+        x = self.pool(x)
+        x = self.drop1(x)
+        
+        x = self.activation(self.conv2(x))
+        x = self.pool(x)
+        x = self.drop2(x)
+        
+        x = self.activation(self.conv3(x))
+        x = self.pool(x)
+        x = self.drop3(x)
+        
+        x = self.activation(self.conv4(x))
+        x = self.pool(x)
+        x = self.drop4(x)
+        
+        x = x.view(x.size(0), -1)  # Flatten the tensor
+        x = self.activation(self.fc1(x))
+        x = self.drop4(x)
+        
+        x = self.activation(self.fc2(x))
+        x = self.drop4(x)
+        
+        x = self.fc3(x)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
