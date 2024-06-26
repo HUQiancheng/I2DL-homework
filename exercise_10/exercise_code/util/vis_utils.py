@@ -6,6 +6,7 @@ import numpy as np
 from exercise_code.data.segmentation_dataset import label_img_to_rgb
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 def visualizer(model, test_data=None):
     num_example_imgs = 4

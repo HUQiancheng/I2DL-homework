@@ -1,24 +1,50 @@
 """SegmentationNN"""
 import torch
 import torch.nn as nn
-from torchvision.models.segmentation import fcn_resnet50, FCN_ResNet50_Weights
 
 class SegmentationNN(nn.Module):
 
     def __init__(self, num_classes=23, hp=None):
         super().__init__()
-        self.hp = hp
+        self.hp = hp or {}
+        num_filters = self.hp.get('num_filters', 32)
+        kernel_size = self.hp.get('kernel_size', 3)
+        padding = self.hp.get('padding', 1)
+        stride = self.hp.get('stride', 1)
+
         #######################################################################
         #                             YOUR CODE                               #
         #######################################################################
-        # Load the pretrained FCN model
-        self.fcn = fcn_resnet50(weights=FCN_ResNet50_Weights.DEFAULT)
-        
-        # Modify the classifier to match the number of classes
-        self.fcn.classifier[4] = nn.Conv2d(512, num_classes, kernel_size=1)
+        self.encoder = nn.Sequential(
+            nn.Conv2d(3, num_filters, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(num_filters, num_filters * 2, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-        # Add an Upsample layer to get the output to the required size
-        self.upsample = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+            nn.Conv2d(num_filters * 2, num_filters * 4, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(num_filters * 4, num_filters * 8, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(num_filters * 8, num_filters * 16, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(num_filters * 16, num_filters * 16, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(num_filters * 16, num_filters * 8, kernel_size=2, stride=2),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(num_filters * 8, num_filters * 4, kernel_size=2, stride=2),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(num_filters * 4, num_filters * 2, kernel_size=2, stride=2),
+            nn.ReLU(inplace=True),
+        )
+
+        self.adjust = nn.Conv2d(num_filters * 2, num_classes, kernel_size=1)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -34,8 +60,9 @@ class SegmentationNN(nn.Module):
         #######################################################################
         #                             YOUR CODE                               #
         #######################################################################
-        x = self.fcn(x)['out']
-        x = self.upsample(x)
+        x = self.encoder(x)
+        x = self.decoder(x)
+        x = self.adjust(x)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -52,7 +79,6 @@ class SegmentationNN(nn.Module):
         """
         print('Saving model... %s' % path)
         torch.save(self, path)
-
 
         
 class DummySegmentationModel(nn.Module):
