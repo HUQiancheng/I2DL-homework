@@ -8,18 +8,12 @@ class FeedForwardNeuralNetwork(nn.Module):
                  d_ff: int,
                  dropout: float = 0.0):
         """
-
         Args:
             d_model: Dimension of Embedding
             d_ff: Dimension of hidden layer
             dropout: Dropout probability
         """
         super().__init__()
-
-        self.linear_1 = None
-        self.relu = None
-        self.linear_2 = None
-        self.dropout = None
 
         ########################################################################
         # TODO:                                                                #
@@ -28,8 +22,10 @@ class FeedForwardNeuralNetwork(nn.Module):
         #                                                                      #
         ########################################################################
 
-
-        pass
+        self.linear_1 = nn.Linear(d_model, d_ff)
+        self.relu = nn.ReLU()
+        self.linear_2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(dropout)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -38,7 +34,6 @@ class FeedForwardNeuralNetwork(nn.Module):
     def forward(self,
                 inputs: torch.Tensor) -> torch.Tensor:
         """
-
         Args:
             inputs: Inputs to the Feed Forward Network
 
@@ -55,8 +50,10 @@ class FeedForwardNeuralNetwork(nn.Module):
         #                                                                      #
         ########################################################################
 
-
-        pass
+        outputs = self.linear_1(inputs)
+        outputs = self.relu(outputs)
+        outputs = self.linear_2(outputs)
+        outputs = self.dropout(outputs)
 
         ########################################################################
         #                           END OF YOUR CODE                           #

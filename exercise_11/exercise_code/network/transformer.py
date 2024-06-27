@@ -77,8 +77,10 @@ class Transformer(nn.Module):
         #          dimensions of the output layer! We will not need a bias!    #
         ########################################################################
 
-
-        pass
+        self.embedding = Embedding(vocab_size, self.d_model, max_length, self.dropout)
+        self.encoder = Encoder(self.d_model, self.d_k, self.d_v, self.n_heads, self.d_ff, self.n, self.dropout)
+        self.decoder = Decoder(self.d_model, self.d_k, self.d_v, self.n_heads, self.d_ff, self.n, self.dropout)
+        self.output_layer = nn.Linear(self.d_model, vocab_size, bias=False)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -128,8 +130,13 @@ class Transformer(nn.Module):
         #           to figure out which masks to pass on!                      #
         ########################################################################
 
+        encoder_embeddings = self.embedding(encoder_inputs)
+        encoder_outputs = self.encoder(encoder_embeddings, encoder_mask)
 
-        pass
+        decoder_embeddings = self.embedding(decoder_inputs)
+        decoder_outputs = self.decoder(decoder_embeddings, encoder_outputs, decoder_mask, encoder_mask)
+
+        outputs = self.output_layer(decoder_outputs)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -138,77 +145,77 @@ class Transformer(nn.Module):
         return outputs
 
     def predict(self,
-                    encoder_input: torch.Tensor,
-                    max_iteration_length: int = 100,
-                    probabilistic: bool = False,
-                    return_scores=False) -> tuple:
-            """
-            Predicts the output sequence given an input sequence using the Transformer model.
+                encoder_input: torch.Tensor,
+                max_iteration_length: int = 100,
+                probabilistic: bool = False,
+                return_scores=False) -> tuple:
+        """
+        Predicts the output sequence given an input sequence using the Transformer model.
 
-            Args:
-                encoder_input (torch.Tensor): The input sequence to be encoded.
-                max_iteration_length (int, optional): The maximum length of the output sequence. Defaults to 100.
-                probabilistic (bool, optional): Whether to sample from the output distribution probabilistically. Defaults to False.
-                return_scores (bool, optional): Whether to return the scores recorded during prediction. Defaults to False.
+        Args:
+            encoder_input (torch.Tensor): The input sequence to be encoded.
+            max_iteration_length (int, optional): The maximum length of the output sequence. Defaults to 100.
+            probabilistic (bool, optional): Whether to sample from the output distribution probabilistically. Defaults to False.
+            return_scores (bool, optional): Whether to return the scores recorded during prediction. Defaults to False.
 
-            Shape:
-                - encoder_input: (sequence_length, d_model)
+        Shape:
+            - encoder_input: (sequence_length, d_model)
 
-            Returns:
-                tuple: A tuple containing the predicted output sequence and the recorded scores (if return_scores is True).
-            """
-            if return_scores:
-                SCORE_SAVER.record_scores()
+        Returns:
+            tuple: A tuple containing the predicted output sequence and the recorded scores (if return_scores is True).
+        """
+        if return_scores:
+            SCORE_SAVER.record_scores()
 
-            # The Model only accepts batched inputs, so we have to add a batch dimension
-            encoder_input = encoder_input.unsqueeze(0)
+        # The Model only accepts batched inputs, so we have to add a batch dimension
+        encoder_input = encoder_input.unsqueeze(0)
 
-            self.eval()
-            with torch.no_grad():
+        self.eval()
+        with torch.no_grad():
 
-                # Compute the encoder embeddings
-                encoder_input = self.embedding(encoder_input)
+            # Compute the encoder embeddings
+            encoder_input = self.embedding(encoder_input)
 
-                # Run the embeddings through the encoder
-                # We only have to do this once, since the input does not change!
-                encoder_output = self.encoder(encoder_input)
+            # Run the embeddings through the encoder
+            # We only have to do this once, since the input does not change!
+            encoder_output = self.encoder(encoder_input)
 
-                # Initialize the output sequence
-                output_sequence = []
+            # Initialize the output sequence
+            output_sequence = []
 
-                for _ in range(max_iteration_length):
+            for _ in range(max_iteration_length):
 
-                    # Add the start token (or in our model it is the eos token) to the output sequence
-                    # and add a batch dimension
-                    decoder_input = torch.tensor([self.eos_token_id] + output_sequence).unsqueeze(0)
+                # Add the start token (or in our model it is the eos token) to the output sequence
+                # and add a batch dimension
+                decoder_input = torch.tensor([self.eos_token_id] + output_sequence).unsqueeze(0)
 
-                    # Compute the decoder embeddings
-                    decoder_input = self.embedding(decoder_input)
+                # Compute the decoder embeddings
+                decoder_input = self.embedding(decoder_input)
 
-                    # Run the embeddings through the decoder
-                    output = self.decoder(decoder_input, encoder_output)
+                # Run the embeddings through the decoder
+                output = self.decoder(decoder_input, encoder_output)
 
-                    # Compute the logits of the output layer
-                    logits = self.output_layer(output).squeeze(0)
+                # Compute the logits of the output layer
+                logits = self.output_layer(output).squeeze(0)
 
-                    # We could run all logits through a softmax and would get the same result
-                    # But we are going to just append the last output of the logits
-                    # Remember - because of the causal masks, the predictions for the previous outputs never change!
-                    last_logit = logits[-1]
+                # We could run all logits through a softmax and would get the same result
+                # But we are going to just append the last output of the logits
+                # Remember - because of the causal masks, the predictions for the previous outputs never change!
+                last_logit = logits[-1]
 
-                    # If probalistic is True, we sample from the output distribution and append the sample to the output sequence
-                    if probabilistic:
-                        output_distribution = torch.distributions.Categorical(logits=last_logit)
-                        output = output_distribution.sample().item()
-                        output_sequence.append(output)
+                # If probalistic is True, we sample from the output distribution and append the sample to the output sequence
+                if probabilistic:
+                    output_distribution = torch.distributions.Categorical(logits=last_logit)
+                    output = output_distribution.sample().item()
+                    output_sequence.append(output)
 
-                    # Else we just take the most likely output and append it to the output sequence
-                    else:
-                        output = torch.argmax(last_logit).item()
-                        output_sequence.append(output)
+                # Else we just take the most likely output and append it to the output sequence
+                else:
+                    output = torch.argmax(last_logit).item()
+                    output_sequence.append(output)
 
-                    # If we predicted the end of sequence token, we stop
-                    if output_sequence[-1] is self.eos_token_id:
-                        break
+                # If we predicted the end of sequence token, we stop
+                if output_sequence[-1] is self.eos_token_id:
+                    break
 
-            return output_sequence, SCORE_SAVER.get_scores()
+        return output_sequence, SCORE_SAVER.get_scores()

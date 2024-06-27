@@ -8,7 +8,6 @@ class ScaledDotAttention(nn.Module):
                  d_k,
                  dropout: float = 0.0):
         """
-
         Args:
             d_k: Dimension of Keys and Queries
             dropout: Dropout probability
@@ -16,17 +15,14 @@ class ScaledDotAttention(nn.Module):
         super().__init__()
         self.d_k = d_k
 
-        self.softmax = None
-        self.dropout = None
-
         ########################################################################
         # TODO:                                                                #
         #   Task 2: Initialize the softmax layer (torch.nn implementation)     #
         #                                                                      #           
         ########################################################################
 
-
-        pass
+        self.softmax = nn.Softmax(dim=-1)
+        self.dropout = nn.Dropout(dropout)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -54,33 +50,34 @@ class ScaledDotAttention(nn.Module):
             - mask: (*, sequence_length_queries, sequence_length_keys)
             - outputs: (*, sequence_length_queries, d_v)
         """
-        scores = None
-        outputs = None
-
         ########################################################################
         # TODO:                                                                #
         #   Task 2:                                                            #
         #       - Calculate the scores using the queries and keys              #
-        #       - Normalise the scores using the softmax function              #
+        #       - Normalize the scores using the softmax function              #
         #       - Compute the updated embeddings and return the output         #
         #   Task 8:                                                            #
         #       - Add a negative infinity mask if a mask is given              #
         #   Task 13:                                                           #
         #       - Add dropout to the scores right BEFORE the final outputs     #
         #         (scores * V) are calculated                                  #
-        #                                                                      #
-        # Hint 2:                                                              #
-        #       - torch.transpose(x, dim_1, dim_2) swaps the dimensions dim_1  #
-        #         and dim_2 of the tensor x!                                   #
-        #       - Later we will insert more dimensions into *, so how could    #
-        #         index these dimensions to always get the right ones?         #
-        #       - Also dont forget to scale the scores as discussed!           #
-        # Hint 8:                                                              #
-        #       - Have a look at Tensor.masked_fill_() or use torch.where()    #
         ########################################################################
 
-
-        pass
+        # Calculate the scores using the queries and keys
+        scores = torch.matmul(q, k.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.d_k, dtype=torch.float32))
+        
+        # Add a negative infinity mask if a mask is given
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+        
+        # Normalize the scores using the softmax function
+        scores = self.softmax(scores)
+        
+        # Add dropout to the scores
+        scores = self.dropout(scores)
+        
+        # Compute the updated embeddings and return the output
+        outputs = torch.matmul(scores, v)
 
         ########################################################################
         #                           END OF YOUR CODE                           #

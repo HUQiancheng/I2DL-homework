@@ -47,8 +47,13 @@ class DecoderBlock(nn.Module):
         # Hint 9: Check out the pytorch layer norm module                      #
         ########################################################################
 
-
-        pass
+        self.causal_multi_head = MultiHeadAttention(d_model, d_k, d_v, n_heads, dropout)
+        self.layer_norm1 = nn.LayerNorm(d_model)
+        self.cross_multi_head = MultiHeadAttention(d_model, d_k, d_v, n_heads, dropout)
+        self.layer_norm2 = nn.LayerNorm(d_model)
+        self.ffn = FeedForwardNeuralNetwork(d_model, d_ff, dropout)
+        self.layer_norm3 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -91,8 +96,20 @@ class DecoderBlock(nn.Module):
         #         module                                                       #
         ########################################################################
 
+        # Causal Multi-Head Self-Attention Layer
+        causal_attention_output = self.causal_multi_head(inputs, inputs, inputs, causal_mask)
+        causal_attention_output = self.dropout(causal_attention_output)
+        causal_attention_output = self.layer_norm1(inputs + causal_attention_output)
 
-        pass
+        # Multi-Head Cross-Attention Layer
+        cross_attention_output = self.cross_multi_head(causal_attention_output, context, context, pad_mask)
+        cross_attention_output = self.dropout(cross_attention_output)
+        cross_attention_output = self.layer_norm2(causal_attention_output + cross_attention_output)
+
+        # Feed-Forward Neural Network
+        ffn_output = self.ffn(cross_attention_output)
+        ffn_output = self.dropout(ffn_output)
+        outputs = self.layer_norm3(cross_attention_output + ffn_output)
 
         ########################################################################
         #                           END OF YOUR CODE                           #

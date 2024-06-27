@@ -149,8 +149,18 @@ class Trainer:
         #        Make sure to pass all masks to the model!                     #
         ########################################################################
 
+        encoder_inputs = batch['encoder_inputs'].to(self.device)
+        decoder_inputs = batch['decoder_inputs'].to(self.device)
+        labels = batch['labels'].to(self.device)
+        label_mask = batch['label_mask'].to(self.device)
+        encoder_mask = batch['encoder_mask'].to(self.device) if 'encoder_mask' in batch else None
+        decoder_mask = batch['decoder_mask'].to(self.device) if 'decoder_mask' in batch else None
 
-        pass
+        # Compute the outputs of the model
+        outputs = self.model(encoder_inputs, decoder_inputs, encoder_mask, decoder_mask)
+
+        # Compute the loss
+        loss = self.loss_func(outputs, labels, label_mask)
 
         ########################################################################
         #                           END OF YOUR CODE                           #

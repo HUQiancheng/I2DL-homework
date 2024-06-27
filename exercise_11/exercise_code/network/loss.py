@@ -44,7 +44,7 @@ class SmoothCrossEntropyLoss(nn.Module):
 
         if lengths is None:
             lengths = torch.tensor([logits.shape[-1]])
-        
+            lengths = lengths.to(logits.device)        
         if mask is None:
             mask = torch.tensor([1])
 

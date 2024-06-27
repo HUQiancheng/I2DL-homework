@@ -1,6 +1,5 @@
 from torch import nn
 import torch    
-
 from ..network import ScaledDotAttention
 
 class MultiHeadAttention(nn.Module):
@@ -12,7 +11,6 @@ class MultiHeadAttention(nn.Module):
                  n_heads: int,
                  dropout: float = 0.0):
         """
-
         Args:
             d_model: Dimension of Embedding
             d_k: Dimension of Keys and Queries
@@ -26,32 +24,23 @@ class MultiHeadAttention(nn.Module):
         self.d_k = d_k
         self.d_v = d_v
 
-        self.weights_q = None
-        self.weights_k = None
-        self.weights_v = None
-        self.attention = None
-        self.project = None
-        self.dropout = None
-
         ########################################################################
         # TODO:                                                                #
         #   Task 3:                                                            #
-        #       -Initialize all weight layers as linear layers                 #
-        #       -Initialize the ScaledDotAttention                             #
-        #       -Initialize the projection layer as a linear layer             #
+        #       - Initialize all weight layers as linear layers                #
+        #       - Initialize the ScaledDotAttention                            #
+        #       - Initialize the projection layer as a linear layer            #
         #  Task 13:                                                            #
-        #       -Initialize the dropout layer (torch.nn implementation)        #
+        #       - Initialize the dropout layer (torch.nn implementation)       #
         #                                                                      #
-        # Hints 3:                                                             #
-        #       - Instead of initializing several weight layers for each head, #
-        #         you can create one large weight matrix. This speed up        #
-        #         the forward pass, since we dont have to loop through all     #
-        #         heads!                                                       #
-        #       - All linear layers should only be a weight without a bias!    #
         ########################################################################
 
-
-        pass
+        self.weights_q = nn.Linear(d_model, n_heads * d_k, bias=False)
+        self.weights_k = nn.Linear(d_model, n_heads * d_k, bias=False)
+        self.weights_v = nn.Linear(d_model, n_heads * d_v, bias=False)
+        self.attention = ScaledDotAttention(d_k, dropout)
+        self.project = nn.Linear(n_heads * d_v, d_model, bias=False)
+        self.dropout = nn.Dropout(dropout)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -63,7 +52,6 @@ class MultiHeadAttention(nn.Module):
                 v: torch.Tensor,
                 mask: torch.Tensor = None) -> torch.Tensor:
         """
-
         Args:
             q: Query Inputs
             k: Key Inputs
@@ -82,13 +70,11 @@ class MultiHeadAttention(nn.Module):
         batch_size, sequence_length_queries, _ = q.size()
         _, sequence_length_keys, _ = k.size()
 
-        outputs = None
-
         ########################################################################
         # TODO:                                                                #
         #   Task 3:                                                            #
         #       - Pass q,k and v through the linear layer                      #
-        #       - Split the last dimensions into n_heads and d_k od d_v        #
+        #       - Split the last dimensions into n_heads and d_k or d_v        #
         #       - Swap the dimensions so that the shape matches the required   #
         #         input shapes of the ScaledDotAttention layer                 #
         #       - Pass them through the ScaledDotAttention layer               #
@@ -101,23 +87,29 @@ class MultiHeadAttention(nn.Module):
         #  Task 13:                                                            #
         #       - Add dropout as a final step after the projection layer       #
         #                                                                      #
-        # Hints 3:                                                             #
-        #       - It helps to write down which dimensions you want to have on  #
-        #         paper!                                                       #
-        #       - Above the todo, we have already extracted the batch_size and #
-        #         the sequence lengths for you!                                #
-        #       - Use reshape() to split or combine dimensions                 #
-        #       - Use transpose() again to swap dimensions                     #
-        # Hints 8:                                                             #
-        #       - Use unsqueeze() to add dimensions at the correct location    #
         ########################################################################
 
+        def shape(x, d):
+            return x.view(batch_size, -1, self.n_heads, d).transpose(1, 2)
 
-        pass
+        def unshape(x):
+            return x.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
+
+        q = shape(self.weights_q(q), self.d_k)
+        k = shape(self.weights_k(k), self.d_k)
+        v = shape(self.weights_v(v), self.d_v)
+
+        if mask is not None:
+            mask = mask.unsqueeze(1)
+
+        x = self.attention(q, k, v, mask=mask)
+
+        x = unshape(x)
+        outputs = self.project(x)
+        outputs = self.dropout(outputs)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
         ########################################################################
 
         return outputs
-    

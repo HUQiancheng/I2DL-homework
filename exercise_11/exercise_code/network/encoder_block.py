@@ -41,8 +41,11 @@ class EncoderBlock(nn.Module):
         # Hint 6: Check out the pytorch layer norm module                      #
         ########################################################################
 
-
-        pass
+        self.multi_head = MultiHeadAttention(d_model, d_k, d_v, n_heads, dropout)
+        self.layer_norm1 = nn.LayerNorm(d_model)
+        self.ffn = FeedForwardNeuralNetwork(d_model, d_ff, dropout)
+        self.layer_norm2 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
 
         ########################################################################
         #                           END OF YOUR CODE                           #
@@ -73,8 +76,13 @@ class EncoderBlock(nn.Module):
         #         the pad_mask for now!                                        #
         ########################################################################
 
+        attention_output = self.multi_head(inputs, inputs, inputs, pad_mask)
+        attention_output = self.dropout(attention_output)
+        attention_output = self.layer_norm1(inputs + attention_output)
 
-        pass
+        ffn_output = self.ffn(attention_output)
+        ffn_output = self.dropout(ffn_output)
+        outputs = self.layer_norm2(attention_output + ffn_output)
 
         ########################################################################
         #                           END OF YOUR CODE                           #

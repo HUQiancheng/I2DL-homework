@@ -72,10 +72,9 @@ class CustomIterableDataset(IterableDataset):
             #         like row['source'].                                          #
             #         Dont use return ;)                                           #
             ########################################################################
-
-
-            pass
-
+            for chunk in reader:
+                for index, row in chunk.iterrows():
+                    yield {'source': row['source'], 'target': row['target']}
             ########################################################################
             #                           END OF YOUR CODE                           #
             ########################################################################
