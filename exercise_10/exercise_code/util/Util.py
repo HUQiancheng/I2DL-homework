@@ -27,7 +27,7 @@ def checkSize(path = "./models/cifar_pytorch.torch"):
     if sizeMB > SIZE_LIMIT_MB:
         print("Your model is too large! The size is {:.1f} MB, but it must be less than 50 MB. Please simplify your model before submitting.".format(sizeMB))
         return False
-    print("Great! Your model size is less than 50 MB and will be accepted :)")
+    print("Great! Your model size is {:.1f} MB, which is less than 50 MB and will be accepted :)".format(sizeMB))
     return True
 
     

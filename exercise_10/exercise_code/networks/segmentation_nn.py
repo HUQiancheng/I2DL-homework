@@ -1,50 +1,47 @@
 """SegmentationNN"""
 import torch
 import torch.nn as nn
+import torchvision
+from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large, DeepLabV3_MobileNet_V3_Large_Weights
 
 class SegmentationNN(nn.Module):
 
     def __init__(self, num_classes=23, hp=None):
         super().__init__()
-        self.hp = hp or {}
-        num_filters = self.hp.get('num_filters', 32)
-        kernel_size = self.hp.get('kernel_size', 3)
-        padding = self.hp.get('padding', 1)
-        stride = self.hp.get('stride', 1)
-
+        self.hp = hp
         #######################################################################
         #                             YOUR CODE                               #
         #######################################################################
-        self.encoder = nn.Sequential(
-            nn.Conv2d(3, num_filters, kernel_size=kernel_size, padding=padding, stride=stride),
+        # 首先先提取特征
+        self.deeplab = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT).backbone
+        
+        self.classifier = nn.Sequential(
+            nn.Conv2d(960, 512, kernel_size=3, padding=1, stride=1), 
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True), 
+            nn.Dropout(p=0.2),
+            
+            nn.Conv2d(512, 256, kernel_size=3, padding=1, stride=1), 
+            nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Conv2d(num_filters, num_filters * 2, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.Dropout(p=0.3),
+            
+            nn.Conv2d(256, 128, kernel_size=3, padding=1, stride=1), 
+            nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-
-            nn.Conv2d(num_filters * 2, num_filters * 4, kernel_size=kernel_size, padding=padding, stride=stride),
+            nn.Dropout(p=0.3),
+            
+            nn.Conv2d(128, 64, kernel_size=3, padding=1, stride=1), 
+            nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.Conv2d(num_filters * 4, num_filters * 8, kernel_size=kernel_size, padding=padding, stride=stride),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-
-            nn.Conv2d(num_filters * 8, num_filters * 16, kernel_size=kernel_size, padding=padding, stride=stride),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(num_filters * 16, num_filters * 16, kernel_size=kernel_size, padding=padding, stride=stride),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.Dropout(p=0.4),
+            
+            
+            nn.Upsample(scale_factor=4, mode='bilinear', align_corners=False),  # 确保输出维度与输入维度匹配
+            nn.Conv2d(64, 32, kernel_size=3, padding=1, stride=1), 
+            nn.Upsample(scale_factor=4, mode='bilinear', align_corners=False),  # 确保输出维度与输入维度匹配
+            nn.Conv2d(32, num_classes, kernel_size=3, padding=1),
         )
-
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(num_filters * 16, num_filters * 8, kernel_size=2, stride=2),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(num_filters * 8, num_filters * 4, kernel_size=2, stride=2),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(num_filters * 4, num_filters * 2, kernel_size=2, stride=2),
-            nn.ReLU(inplace=True),
-        )
-
-        self.adjust = nn.Conv2d(num_filters * 2, num_classes, kernel_size=1)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -60,9 +57,8 @@ class SegmentationNN(nn.Module):
         #######################################################################
         #                             YOUR CODE                               #
         #######################################################################
-        x = self.encoder(x)
-        x = self.decoder(x)
-        x = self.adjust(x)
+        x = self.deeplab(x)['out']
+        x = self.classifier(x)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -79,8 +75,6 @@ class SegmentationNN(nn.Module):
         """
         print('Saving model... %s' % path)
         torch.save(self, path)
-
-        
 class DummySegmentationModel(nn.Module):
 
     def __init__(self, target_image):
